@@ -1,0 +1,7 @@
+[Tt]humbs.db
+*.suo
+*/bin/
+*/obj/
+packages/
+*.user
+*.userprefs
