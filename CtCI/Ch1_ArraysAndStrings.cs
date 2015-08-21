@@ -91,9 +91,7 @@ namespace CtCI {
                     return false;
                 }
                 hash[ch] = hash[ch] - 1;
-            }
-            foreach (var counter in hash.Values) {
-                if (counter != 0) {
+                if (hash[ch] < 0) {
                     return false;
                 }
             }
@@ -126,18 +124,22 @@ namespace CtCI {
         #region URLify
         public static void Urlify(char[] text, int len) {
             // no checks
-            // complexity O(n^2)
-            for (var i = 0; i < len; ) {
-                if (text[i].Equals(' ')) {
-                    for (var j = len + 1; j > i+2; j -= 2) {
-                        text[j] = text[j - 2];
-                        text[j - 1] = text[j - 3];
-                    }
-                    text[i] = '%'; text[i + 1] = '2'; text[i + 2] = '0';
-                    len += 2;
-                    i += 2;
+            // complexity O(2n) = O(n)
+            var spaceCount = 0;
+            for (var idx = 0; idx < len; idx++) {
+                if (text[idx] == ' ') {
+                    spaceCount++;
                 }
-                i++;
+            }
+            var dest = len + 2*spaceCount - 1;
+            for (var idx = len - 1; idx >= 0; idx--) {
+                if (text[idx] == ' ') {
+                    text[dest] = '0'; text[dest - 1] = '2'; text[dest - 2] = '%';
+                    dest -= 3;
+                } else {
+                    text[dest] = text[idx];
+                    dest--;
+                }
             }
         }
 
@@ -235,18 +237,23 @@ namespace CtCI {
                 return false;
             }
 
-            int fpl;
-            for (fpl = 0; fpl < txt1.Length; fpl++) {
-                if (txt1[fpl] != txt2[fpl]) {
-                    break;
+            int idx1 = 0, idx2 = 0;
+            var found = false;
+            while (idx2 < txt1.Length && idx2 < txt2.Length) {
+                if (txt1[idx1] == txt2[idx2]) {
+                    idx1++;
+                } else {
+                    if (found) {
+                        return false;
+                    }
+                    found = true;
+                    if (txt1.Length == txt2.Length) {
+                        idx1++;
+                    }
                 }
+                idx2++;
             }
-
-            var piv1 = fpl + (txt1.Length == txt2.Length ? 1 : 0);
-            var piv2 = piv1 + (txt1.Length != txt2.Length ? 1 : 0);
-            var spl = txt1.Length - piv1;
-            return txt1.Substring(0, fpl) == txt2.Substring(0, fpl) &&
-                   txt1.Substring(piv1, spl) == txt2.Substring(piv2, spl);
+            return true;
         }
 
         [Test]
@@ -298,10 +305,10 @@ namespace CtCI {
             var builder = new StringBuilder(txt.Length/2);
             var current = txt[0];
             var counter = 0;
-            for (int idx = 0; idx < txt.Length; idx++) {
-                if (current != txt[idx]) {
+            foreach (var ch in txt) {
+                if (current != ch) {
                     builder.Append(string.Format("{0}{1}", current, counter));
-                    current = txt[idx];
+                    current = ch;
                     counter = 1;
                 } else {
                     counter++;
