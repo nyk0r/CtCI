@@ -391,23 +391,27 @@ namespace CtCI {
                 throw new ArgumentNullException("matrix");
             }
             int m = matrix.GetLength(0), n = matrix.GetLength(1);
-            HashSet<int> rows = new HashSet<int>(), cols = new HashSet<int>();
+            bool[] rows = new bool[m], cols = new bool[n];
             for (var i = 0; i < m; i++) {
                 for (int j = 0; j < n; j++) {
                     if (matrix[i, j] == 0) {
-                        rows.Add(i);
-                        cols.Add(j);
+                        rows[i] = true;
+                        cols[j] = true;
                     }
                 }
             }
-            foreach (var row in rows) {
-                for (var k = 0; k < n; k++) {
-                    matrix[row, k] = 0;
+            for (var row = 0; row < m; row++) {
+                if (rows[row]) {
+                    for (var k = 0; k < n; k++) {
+                        matrix[row, k] = 0;
+                    }
                 }
             }
-            foreach (var col in cols) {
-                for (int k = 0; k < m; k++) {
-                    matrix[k, col] = 0;
+            for (var col = 0; col < n; col++) {
+                if (cols[col]) {
+                    for (int k = 0; k < m; k++) {
+                        matrix[k, col] = 0;
+                    }
                 }
             }
         }
