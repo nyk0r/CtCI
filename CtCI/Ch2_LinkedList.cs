@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
-using NUnit.Framework.Constraints;
 
 namespace CtCI {
     internal class Ch2_LinkedList
@@ -48,6 +48,13 @@ namespace CtCI {
                 node = node.Next;
             }
 
+            return list;
+        }
+
+        private static Node<T> GetLastNode<T>(Node<T> list) {
+            while (list != null && list.Next != null) {
+                list = list.Next;
+            }
             return list;
         }
 
@@ -263,12 +270,12 @@ namespace CtCI {
             byte reminder = 0;
             while (a != null || b != null) {
                 var sum =
-                    (byte)((a != null ? a.Value : 0) +
-                    (b != null ? b.Value : 0) +
-                    reminder);
+                    (byte) ((a != null ? a.Value : 0) +
+                            (b != null ? b.Value : 0) +
+                            reminder);
 
                 reminder = 0;
-                if (sum >= 10) {
+                if (sum > 9) {
                     reminder = (byte) (sum/10);
                     sum %= 10;
                 }
@@ -297,6 +304,9 @@ namespace CtCI {
                 Tuple.Create(Tuple.Create((byte[]) null, (byte[]) null), (byte[]) null),
                 Tuple.Create(Tuple.Create(new byte[] { 7, 1, 6 }, (byte[]) null), new byte[] { 7, 1, 6 }),
                 Tuple.Create(Tuple.Create(new byte[] { }, new byte[] { 5, 9, 2 }), new byte[] { 5, 9, 2 }),
+                Tuple.Create(Tuple.Create(new byte[] { 9 }, new byte[] { 9 }), new byte[] { 8, 1 }),
+                Tuple.Create(Tuple.Create(new byte[] { 9, 9 }, new byte[] { 9 }), new byte[] { 8, 0, 1 }),
+                Tuple.Create(Tuple.Create(new byte[] { 9 }, new byte[] { 9, 9 }), new byte[] { 8, 0, 1 }),
                 Tuple.Create(Tuple.Create(new byte[] { 7, 1, 6 }, new byte[] { 5, 9, 2 }), new byte[] { 2, 1, 9 })
             };
 
@@ -309,40 +319,213 @@ namespace CtCI {
         }
 
         public static Node<byte> SumListsBigEndian(Node<byte> a, Node<byte> b) {
-            throw new NotImplementedException();
+            Stack<byte> revA = new Stack<byte>(), revB = new Stack<byte>(), revC = new Stack<byte>();
+            while (a != null || b != null) {
+                if (a != null) {
+                    revA.Push(a.Value);
+                    a = a.Next;
+                }
+                if (b != null) {
+                    revB.Push(b.Value);
+                    b = b.Next;
+                }
+            }
+
+            byte reminder = 0;
+            while (revA.Any() || revB.Any()) {
+                var sum =
+                   (byte)((revA.Count != 0 ? revA.Peek() : 0) +
+                           (revB.Count != 0 ? revB.Peek() : 0) +
+                           reminder);
+                reminder = 0;
+                if (sum > 9) {
+                    reminder = (byte)(sum / 10);
+                    sum %= 10;
+                }
+
+                revC.Push(sum);
+
+                if (revA.Any()) {
+                    revA.Pop();
+                }
+                if (revB.Any()) {
+                    revB.Pop();
+                }
+            }
+            if (reminder != 0) {
+                revC.Push(reminder);
+            }
+
+            Node<byte> c = new Node<byte>(), result = c;
+            while (revC.Any()) {
+                c.Next = new Node<byte>(revC.Pop());
+                c = c.Next;
+            }
+
+            return result.Next;
         }
 
         [Test]
-        public void TestSumListsBigEndian() { }
+        public void TestSumListsBigEndian() {
+            var fixures = new[] {
+                Tuple.Create(Tuple.Create((byte[]) null, (byte[]) null), (byte[]) null),
+                Tuple.Create(Tuple.Create(new byte[] { 6, 1, 7 }, (byte[]) null), new byte[] { 6, 1, 7 }),
+                Tuple.Create(Tuple.Create(new byte[] { }, new byte[] { 2, 9, 5 }), new byte[] { 2, 9, 5 }),
+                Tuple.Create(Tuple.Create(new byte[] { 9 }, new byte[] { 9 }), new byte[] { 1, 8 }),
+                Tuple.Create(Tuple.Create(new byte[] { 9, 9 }, new byte[] { 9 }), new byte[] { 1, 0, 8 }),
+                Tuple.Create(Tuple.Create(new byte[] { 9 }, new byte[] { 9, 9 }), new byte[] { 1, 0, 8 }),
+                Tuple.Create(Tuple.Create(new byte[] { 6, 1, 7 }, new byte[] { 2, 9, 5 }), new byte[] { 9, 1, 2 })
+            };
+
+            foreach (var fixure in fixures) {
+                Node<byte>
+                    a = CreateListFromArray(fixure.Item1.Item1),
+                    b = CreateListFromArray(fixure.Item1.Item2);
+                Assert.True(IsListEquivalentToArray(SumListsBigEndian(a, b), fixure.Item2));
+            }
+        }
         #endregion
 
         #region Palidrome
         public static bool CheckPalidrome<T>(Node<T> list) {
-            throw new NotImplementedException();
+            var firstPart = new Stack<T>();
+            Node<T> p1 = new Node<T> { Next = list }, p2 = new Node<T> { Next = list };
+            while (p2 != null && p2.Next != null) {
+                p1 = p1.Next;
+                p2 = p2.Next.Next;
+                firstPart.Push(p1.Value);
+            }
+
+            if (p2 == null) {
+                firstPart.Pop();
+            }
+
+            p1 = p1.Next;
+            while (p1 != null) {
+                if (!firstPart.Any()) {
+                    return false;
+                }
+                if (!firstPart.Pop().Equals(p1.Value)) {
+                    return false;
+                }
+                p1 = p1.Next;
+            }
+
+            return !firstPart.Any();
         }
 
         [Test]
         public static void TestCheckPalindrome() {
-            
+            var fixtures = new[] {
+                Tuple.Create((char[]) null, true),
+                Tuple.Create(new char[] { }, true),
+                Tuple.Create(new [] { 'a' }, true),
+                Tuple.Create(new [] { 'a', 'a' }, true),
+                Tuple.Create(new [] { 'a', 'b' }, false),
+                Tuple.Create(new [] { 'c', 'a', 't' }, false),
+                Tuple.Create(new [] { 'b', 'o', 'b' }, true),
+                Tuple.Create(new [] { 'a', 'b', 'b', 'a' }, true),
+                Tuple.Create(new [] { '0', 'a', 'b', 'b', 'a', '0' }, true),
+                Tuple.Create(new [] { 'p', 'u', 't', 'i', 't', 'u', 'p' }, true),
+                Tuple.Create(new [] { 'p', 'u', 't', 'i', 't', 'u', 'z' }, false),
+                Tuple.Create(new [] { '0', 'p', 'u', 't', 'i', 't', 'u', 'p', '0' }, true),
+                Tuple.Create(new [] { '0', 'p', 'u', 't', 'i', 't', 'u', 'p', '1' }, false)
+            };
+
+            foreach (var fixture in fixtures) {
+                Assert.AreEqual(fixture.Item2, CheckPalidrome(CreateListFromArray(fixture.Item1)));
+            }
         }
         #endregion
 
         #region Intersection
         public static Node<T> GetIntersectionNode<T>(Node<T> list1, Node<T> list2) {
-            throw new NotImplementedException();
+            for (var node1 = list1; node1 != null; node1 = node1.Next) {
+                for (var node2 = list2; node2 != null; node2 = node2.Next) {
+                    if (node1.Equals(node2)) {
+                        return node1;
+                    }
+                }
+            }
+
+            return null;
         }
 
         [Test]
-        public void TestGetIntersectionNode() { }
+        public void TestGetIntersectionNode() {
+            var nodeStart = CreateListFromArray(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+            var nodeEnd = nodeStart;
+            while (nodeEnd.Next != null) {
+                nodeEnd = nodeEnd.Next;
+            }
+            var nodeMiddle = nodeStart;
+            while (nodeMiddle != null) {
+                if (nodeMiddle.Value == 5) {
+                    break;
+                }
+                nodeMiddle = nodeMiddle.Next;
+            }
+
+            var listStart = CreateListFromArray(new[] { 100, 101, 102 });
+            GetLastNode(listStart).Next = nodeStart;
+            var listEnd = CreateListFromArray(new[] { 100, 101, 102 });
+            GetLastNode(listEnd).Next = nodeEnd;
+            var listMiddle = CreateListFromArray(new[] { 100, 101, 102 });
+            GetLastNode(listMiddle).Next = nodeMiddle;
+
+            var fixtures = new[] {
+                Tuple.Create(Tuple.Create((Node<int>) null, (Node<int>) null), (Node<int>) null),
+                Tuple.Create(Tuple.Create((Node<int>) null, nodeStart), (Node<int>) null),
+                Tuple.Create(Tuple.Create(nodeStart, (Node<int>) null), (Node<int>) null),
+
+                Tuple.Create(Tuple.Create(CreateListFromArray(new[] { 1, 2, 3 }), nodeStart), (Node<int>) null),
+                Tuple.Create(Tuple.Create(nodeStart, CreateListFromArray(new[] { 1, 2, 3 })), (Node<int>) null),
+
+                Tuple.Create(Tuple.Create(listStart, nodeStart), nodeStart),
+                Tuple.Create(Tuple.Create(listEnd, nodeStart), nodeEnd),
+                Tuple.Create(Tuple.Create(listMiddle, nodeStart), nodeMiddle),
+
+                Tuple.Create(Tuple.Create(nodeStart, listStart), nodeStart),
+                Tuple.Create(Tuple.Create(nodeStart, listEnd), nodeEnd),
+                Tuple.Create(Tuple.Create(nodeStart, listMiddle), nodeMiddle)
+            };
+
+            foreach (var fixture in fixtures) {
+                Assert.AreEqual(fixture.Item2, GetIntersectionNode(fixture.Item1.Item1, fixture.Item1.Item2));
+            }
+        }
         #endregion
 
         #region Loop Detection
-        public static Node<T> GetLoopNode<T>(Node<T> list) {
-            throw new NotImplementedException();
+        public static Node<T> GetLoopingNode<T>(Node<T> list) {
+            var seen = new HashSet<Node<T>>();
+
+            for (; list != null; list = list.Next) {
+                if (seen.Contains(list.Next)) {
+                    return list;
+                }
+                seen.Add(list);
+            }
+
+            return null;
         }
 
         [Test]
-        public void TestGetLoopNode() { }
+        public void TestGetLoopNode() {
+            var list = CreateListFromArray(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+            var loopingNode = new Node<int>(101) { Next = list };
+            GetLastNode(list).Next = loopingNode;
+
+            var fixtures = new[] {
+                Tuple.Create((Node<int>) null, (Node<int>) null),
+                Tuple.Create(CreateListFromArray(new[] { 0, 1, 2 }), (Node<int>) null),
+                Tuple.Create(list, loopingNode)
+            };
+
+            foreach (var fixture in fixtures) {
+                Assert.AreEqual(fixture.Item2, GetLoopingNode(fixture.Item1));
+            }
+        }
         #endregion
     }
 }
