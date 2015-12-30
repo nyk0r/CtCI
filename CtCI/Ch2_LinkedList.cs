@@ -440,11 +440,35 @@ namespace CtCI {
 
         #region Intersection
         public static Node<T> GetIntersectionNode<T>(Node<T> list1, Node<T> list2) {
-            for (var node1 = list1; node1 != null; node1 = node1.Next) {
-                for (var node2 = list2; node2 != null; node2 = node2.Next) {
-                    if (node1.Equals(node2)) {
-                        return node1;
+            Node<T> last1 = list1, last2 = list2;
+            int list1Len = 0, list2Len = 0;
+            while (last1 != null && last1.Next != null) {
+                last1 = last1.Next;
+                ++list1Len;
+            }
+            while (last2 != null && last2.Next != null) {
+                last2 = last2.Next;
+                ++list2Len;
+            }
+
+            if (last1 == last2) {
+                var delta = Math.Max(list1Len, list2Len) - Math.Min(list1Len, list2Len);
+                Node<T> smaller = list1, bigger = list2;
+                if (list2Len < list1Len) {
+                    smaller = list2;
+                    bigger = list1;
+                }
+                while (delta > 0) {
+                    bigger = bigger.Next;
+                    --delta;
+                }
+
+                while (bigger != null && smaller != null) {
+                    if (bigger == smaller) {
+                        return bigger;
                     }
+                    bigger = bigger.Next;
+                    smaller = smaller.Next;
                 }
             }
 
