@@ -61,26 +61,33 @@ namespace CtCI {
         #region Remove Dups
         public static void RemoveDupsExternalBuffer<T>(Node<T> list) {
             var seen = new HashSet<T>();
+            var target = new Node<T>();
             for (; list != null; list = list.Next) {
-                seen.Add(list.Value);
-                while (list.Next != null && seen.Contains(list.Next.Value)) {
-                    list.Next = list.Next.Next;
+                if (!seen.Contains(list.Value)) {
+                    target.Next = list;
+                    target = target.Next;
+                    seen.Add(list.Value);
                 }
             }
+            target.Next = null;
         }
 
         public static void RemoveDupsNoExternalBuffer<T>(Node<T> list) {
-            for (; list != null; list = list.Next) {
-                var mark = list;
-                while (mark != null) {
-                    var nextNode = mark.Next;
-                    while (nextNode != null && list.Value.Equals(nextNode.Value)) {
-                        nextNode = nextNode.Next;
+            var target = new Node<T>();
+            for (var node = list; node != null; node = node.Next) {
+                var was = false;
+                for (var passedNode = list; passedNode != node; passedNode = passedNode.Next) {
+                    if (node.Value.Equals(passedNode.Value)) {
+                        was = true;
+                        break;
                     }
-                    mark.Next = nextNode;
-                    mark = mark.Next;
+                }
+                if (!was) {
+                    target.Next = node;
+                    target = target.Next;
                 }
             }
+            target.Next = null;
         }
 
         [Test]
@@ -118,22 +125,24 @@ namespace CtCI {
                 throw new ArgumentOutOfRangeException("k");
             }
 
-            for (; list != null; list = list.Next) {
-                var steps = 0;
-                var forward = list.Next;
-                while (steps < k && forward != null) {
-                    steps++;
-                    forward = forward.Next;
-                }
-                if (forward == null) {
-                    if (steps == k) {
-                        return list;
-                    }
+            if (list == null) {
+                throw new IndexOutOfRangeException("k");
+            }
+
+            Node<T> p1 = list, p2 = list;
+            for (var i = 0; i < k; i++) {
+                p1 = p1.Next;
+                if (p1 == null) {
                     throw new IndexOutOfRangeException("k");
                 }
             }
 
-            throw new IndexOutOfRangeException("k");
+            while (p1.Next != null) {
+                p1 = p1.Next;
+                p2 = p2.Next;
+            }
+
+            return p2;
         }
 
         [Test]
@@ -189,10 +198,6 @@ namespace CtCI {
         private delegate Node<T> PartitioningMethod<T>(Node<T> list, T pivot);
 
         public static Node<T> PartitionReorderNode<T>(Node<T> list, T pivot) where T : IComparable<T> {
-            /*if (list == null) {
-                throw new ArgumentNullException("list");
-            }*/
-            
             Node<T> lList = new Node<T>(),
                 geList = new Node<T>(),
                 cLList = lList,
@@ -522,16 +527,30 @@ namespace CtCI {
 
         #region Loop Detection
         public static Node<T> GetLoopingNode<T>(Node<T> list) {
-            var seen = new HashSet<Node<T>>();
-
-            for (; list != null; list = list.Next) {
-                if (seen.Contains(list.Next)) {
-                    return list;
-                }
-                seen.Add(list);
+            if (list == null) {
+                return null;
             }
 
-            return null;
+            Node<T> tortoise = list, hare = list;
+            while (hare != null && hare.Next != null) {
+                tortoise = tortoise.Next;
+                hare = hare.Next.Next;
+                if (tortoise == hare) {
+                    break;
+                }
+            }
+
+            if (tortoise != hare) {
+                return null;
+            }
+
+            tortoise = list;
+            while (tortoise != hare) {
+                tortoise = tortoise.Next;
+                hare = hare.Next;
+            }
+
+            return tortoise;
         }
 
         [Test]
@@ -540,10 +559,19 @@ namespace CtCI {
             var loopingNode = new Node<int>(101) { Next = list };
             GetLastNode(list).Next = loopingNode;
 
+            var list2 = CreateListFromArray(new[] { -3, -2, -1 });
+            GetLastNode(list2).Next = loopingNode;
+
+            var list3 = CreateListFromArray(new[] { 1, 2, 3, 4, 5 });
+            var last3 = GetLastNode(list3);
+            last3.Next = last3;
+
             var fixtures = new[] {
                 Tuple.Create((Node<int>) null, (Node<int>) null),
                 Tuple.Create(CreateListFromArray(new[] { 0, 1, 2 }), (Node<int>) null),
-                Tuple.Create(list, loopingNode)
+                Tuple.Create(loopingNode, loopingNode),
+                Tuple.Create(list2, loopingNode),
+                Tuple.Create(list3, last3)
             };
 
             foreach (var fixture in fixtures) {
