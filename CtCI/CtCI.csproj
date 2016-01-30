@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="Ch1_ArraysAndStrings.cs" />
     <Compile Include="Ch2_LinkedList.cs" />
+    <Compile Include="Ch3_StacksAndQueues.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -4,7 +4,7 @@ using System.Linq;
 using NUnit.Framework;
 
 namespace CtCI {
-    internal class Ch2_LinkedList
+    public class Ch2_LinkedList
     {
         public class Node<T> {
             public T Value { get; set; }
