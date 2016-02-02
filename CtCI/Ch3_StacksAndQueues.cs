@@ -131,10 +131,14 @@ namespace CtCI
 
         #region Three in One
         public class NStacksArray<T> {
+            private struct BucketData {
+                public int Start;
+                public int Size;
+                public int Pointer;
+            }
+
             private T[] _data;
-            private readonly int _buckets;
-            private int _bucketSize;
-            private readonly int[] _pointers;
+            private BucketData[] _buckets;
 
             public NStacksArray(int buckets = 3, int bucketSize = 10) {
                 if (buckets <= 0) {
@@ -145,49 +149,53 @@ namespace CtCI
                     throw new ArgumentOutOfRangeException("bucketSize");
                 }
 
-                _bucketSize = bucketSize;
-                _buckets = buckets;
-                _pointers = new int[_buckets];
-                for (var idx = 0; idx < _pointers.Length; idx++) {
-                    _pointers[idx] = -1;
+                _buckets = new BucketData[buckets];
+                for (var idx = 0; idx < _buckets.Length; idx++) {
+                    _buckets[idx].Size    = bucketSize;
+                    _buckets[idx].Start   = idx*bucketSize;
+                    _buckets[idx].Pointer = -1;
                 }
-                _data = new T[_buckets*_bucketSize];
+
+                _data = new T[buckets*bucketSize];
             }
 
             public T Pop(int bucket) {
                 CheckBucketUnderflow(bucket);
-                return _data[bucket*_bucketSize + _pointers[bucket]--];
+                return _data[_buckets[bucket].Start + _buckets[bucket].Pointer--];
             }
 
             public void Push(T val, int bucket) {
                 CheckBucket(bucket);
-                if (_pointers[bucket] + 1 == _bucketSize) {
-                    var bucketSize = _bucketSize*2;
-                    var data = new T[_buckets*bucketSize];
-                    for (var bucketIdx = 0; bucketIdx < _buckets; bucketIdx++) {
-                        for (var itemIdx = 0; itemIdx <= _pointers[bucketIdx]; itemIdx++) {
-                            data[bucketIdx*_bucketSize + itemIdx] = _data[bucketIdx*_bucketSize + itemIdx];
+                if (_buckets[bucket].Pointer + 1 == _buckets[bucket].Size) {
+                    var delta = _buckets[bucket].Size;
+                    _buckets[bucket].Size += delta;
+                    var data = new T[_data.Length + delta];
+                    for (var bucketIdx = 0; bucketIdx < _buckets.Length; bucketIdx++) {
+                        var sourceStart = _buckets[bucketIdx].Start;
+                        if (bucketIdx > bucket) {
+                            _buckets[bucketIdx].Start += delta;
+                        }
+                        for (var itemIdx = 0; itemIdx <= _buckets[bucketIdx].Pointer; itemIdx++) {
+                            data[_buckets[bucketIdx].Start + itemIdx] = _data[sourceStart + itemIdx];
                         }
                     }
-
-                    _bucketSize = bucketSize;
                     _data = data;
                 }
-                _data[bucket*_bucketSize + ++_pointers[bucket]] = val;
+                _data[_buckets[bucket].Start + ++_buckets[bucket].Pointer] = val;
             }
 
             public T Peek(int bucket) {
                 CheckBucketUnderflow(bucket);
-                return _data[bucket*_bucketSize + _pointers[bucket]];
+                return _data[_buckets[bucket].Start + _buckets[bucket].Pointer];
             }
 
             public bool IsEmpty(int bucket) {
                 CheckBucket(bucket);
-                return _pointers[bucket] < 0;
+                return _buckets[bucket].Pointer < 0;
             }
 
             private void CheckBucket(int bucket) {
-                if (bucket < 0 || bucket >= _buckets) {
+                if (bucket < 0 || bucket >= _buckets.Length) {
                     throw new ArgumentOutOfRangeException("bucket");
                 }
             }
